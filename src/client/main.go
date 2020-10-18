@@ -8,10 +8,21 @@ import (
 	"net/url"
 )
 
-var oauth = struct {
-	authURL string
+var port = "8081"
+var host = "http://localhost:" + port
+
+var config = struct {
+	appID               string
+	authURL             string
+	logoutURL           string
+	afterLogoutRedirect string
+	authCodeCallback    string
 }{
-	authURL: "http://localhost:8080/auth/realms/learningApp/protocol/openid-connect/auth",
+	appID:               "billingApp",
+	authURL:             "http://localhost:8080/auth/realms/learningApp/protocol/openid-connect/auth",
+	logoutURL:           "http://localhost:8080/auth/realms/learningApp/protocol/openid-connect/logout",
+	afterLogoutRedirect: host,
+	authCodeCallback:    host + "/authCodeRedirect",
 }
 
 type AppVar struct {
@@ -28,17 +39,16 @@ func main() {
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/logout", logout)
 	http.HandleFunc("/authCodeRedirect", authCodeRedirect)
-	http.ListenAndServe(":8081", nil)
+	http.ListenAndServe(":"+port, nil)
 }
 
 func home(w http.ResponseWriter, r *http.Request) {
-
-	t.Execute(w, nil)
+	t.Execute(w, appVar)
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
 	// create a redirect URL for authentication endpoint
-	req, err := http.NewRequest("GET", oauth.authURL, nil)
+	req, err := http.NewRequest("GET", config.authURL, nil)
 	if err != nil {
 		log.Print(err)
 		return
@@ -46,11 +56,10 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	qs := url.Values{}
 	qs.Add("state", "123")
-	qs.Add("client_id", "billingApp")
+	qs.Add("client_id", config.appID)
 	qs.Add("response_type", "code")
-	qs.Add("redirect_uri", "http://localhost:8081/authCodeRedirect")
+	qs.Add("redirect_uri", config.authCodeCallback)
 
-	// "state=123abc&client_id=billingApp&response_type=code"
 	req.URL.RawQuery = qs.Encode()
 
 	http.Redirect(w, r, req.URL.String(), http.StatusFound)
@@ -62,9 +71,18 @@ func authCodeRedirect(w http.ResponseWriter, r *http.Request) {
 	r.URL.RawQuery = ""
 	fmt.Printf("Request queries: %+v\n", appVar)
 
-	http.Redirect(w, r, "http://localhost:8081/", http.StatusFound)
+	http.Redirect(w, r, host, http.StatusFound)
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
+	q := url.Values{}
+	q.Add("redirect_uri", config.afterLogoutRedirect)
 
+	logoutURL, err := url.Parse(config.logoutURL)
+	if err != nil {
+		log.Println(err)
+	}
+	logoutURL.RawQuery = q.Encode()
+	appVar = AppVar{}
+	http.Redirect(w, r, logoutURL.String(), http.StatusFound)
 }

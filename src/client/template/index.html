@@ -6,7 +6,11 @@
     <title>Document</title>
 </head>
 <body>
-    <a href="/login"><button>Login with Keycloak</button></a>
-    <a href="/logout"><button>Logout</button></a>
+    <div><a href="/login"><button>Login with Keycloak</button></a></div>
+    <div><a href="/logout"><button>Logout</button></a></div>
+    <div>
+        <p>auth code : {{.AuthCode}}</p>
+        <p>session : {{.SessionState}}</p>
+    </div>
 </body>
 </html>
