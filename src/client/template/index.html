@@ -26,6 +26,9 @@
               <a class="nav-link" href="/login">Login</a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" href="/exchangeToken">Exchange token</a>
+              </li>
+            <li class="nav-item">
               <a class="nav-link" href="/logout">Logout</a>
             </li>
           </ul>
@@ -51,6 +54,10 @@
                   <tr>
                     <th scope="row">session</th>
                     <td>{{.SessionState}}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">access token</th>
+                    <td>{{.AccessToken}}</td>
                   </tr>
                 </tbody>
               </table>
