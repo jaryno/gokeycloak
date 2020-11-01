@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -8,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"learn.oatuh.client/model"
 )
 
 var port = "8081"
@@ -35,6 +38,8 @@ type AppVar struct {
 	AuthCode     string
 	SessionState string
 	AccessToken  string
+	RefreshToken string
+	Scope        string
 }
 
 var t = template.Must(template.ParseFiles("template/index.html"))
@@ -127,7 +132,13 @@ func exchangeToken(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	appVar.AccessToken = string(byteBody)
+
+	accessTokenResponse := &model.AccessTokenResponse{}
+	json.Unmarshal(byteBody, accessTokenResponse)
+
+	appVar.AccessToken = accessTokenResponse.AccessToken
+	appVar.RefreshToken = accessTokenResponse.RefreshToken
+	appVar.Scope = accessTokenResponse.Scope
 	log.Println(appVar.AccessToken)
 
 	t.Execute(w, appVar)

@@ -56,8 +56,16 @@
                     <td>{{.SessionState}}</td>
                   </tr>
                   <tr>
-                    <th scope="row">access token</th>
-                    <td>{{.AccessToken}}</td>
+                    <th scope="row">Access token</th>
+                    <td style="word-break: break-all;">{{.AccessToken}}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Refresh token</th>
+                    <td style="word-break: break-all;">{{.RefreshToken}}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Token Scope</th>
+                    <td style="word-break: break-all;">{{.Scope}}</td>
                   </tr>
                 </tbody>
               </table>
