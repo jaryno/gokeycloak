@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"reflect"
+	"runtime"
 	"strings"
 
 	"learn.oatuh.client/model"
@@ -47,12 +49,28 @@ var appVar = AppVar{}
 
 func main() {
 	// fmt.Println("hello")
-	http.HandleFunc("/", home)
-	http.HandleFunc("/login", login)
-	http.HandleFunc("/logout", logout)
-	http.HandleFunc("/exchangeToken", exchangeToken)
-	http.HandleFunc("/authCodeRedirect", authCodeRedirect)
+	http.HandleFunc("/", enabledLog(home))
+	http.HandleFunc("/login", enabledLog(login))
+	http.HandleFunc("/logout", enabledLog(logout))
+	http.HandleFunc("/exchangeToken", enabledLog(exchangeToken))
+	http.HandleFunc("/authCodeRedirect", enabledLog(authCodeRedirect))
 	http.ListenAndServe(":"+port, nil)
+}
+
+func init() {
+	log.SetFlags(log.Ltime)
+}
+
+func enabledLog(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		handlerName := runtime.FuncForPC(reflect.ValueOf(handler).Pointer()).Name()
+		log.SetPrefix(handlerName + " ")
+		log.Println("--> " + handlerName)
+		log.Printf("request : %+v\n", r.RequestURI)
+		// log.Printf("response : %+v\n", w)
+		handler(w, r)
+		log.Println("<-- " + handlerName)
+	}
 }
 
 func home(w http.ResponseWriter, r *http.Request) {
