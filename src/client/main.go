@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -11,6 +12,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"time"
 
 	"learn.oatuh.client/model"
 )
@@ -26,6 +28,7 @@ var config = struct {
 	afterLogoutRedirect string
 	authCodeCallback    string
 	tokenEndpoint       string
+	servicesEndpoint    string
 }{
 	appID:               "billingApp",
 	appPassword:         "b96d3964-b8c2-4302-af07-3ec440945611",
@@ -34,6 +37,7 @@ var config = struct {
 	afterLogoutRedirect: host,
 	authCodeCallback:    host + "/authCodeRedirect",
 	tokenEndpoint:       "http://localhost:8080/auth/realms/learningApp/protocol/openid-connect/token",
+	servicesEndpoint:    "http://localhost:8082/billing/v1/services",
 }
 
 type AppVar struct {
@@ -42,9 +46,12 @@ type AppVar struct {
 	AccessToken  string
 	RefreshToken string
 	Scope        string
+	Services     []string
 }
 
 var t = template.Must(template.ParseFiles("template/index.html"))
+var tServices = template.Must(template.ParseFiles("template/index.html", "template/services.html"))
+
 var appVar = AppVar{}
 
 func main() {
@@ -53,6 +60,7 @@ func main() {
 	http.HandleFunc("/login", enabledLog(login))
 	http.HandleFunc("/logout", enabledLog(logout))
 	http.HandleFunc("/exchangeToken", enabledLog(exchangeToken))
+	http.HandleFunc("/services", enabledLog(services))
 	http.HandleFunc("/authCodeRedirect", enabledLog(authCodeRedirect))
 	http.ListenAndServe(":"+port, nil)
 }
@@ -160,4 +168,46 @@ func exchangeToken(w http.ResponseWriter, r *http.Request) {
 	log.Println(appVar.AccessToken)
 
 	t.Execute(w, appVar)
+}
+
+func services(w http.ResponseWriter, r *http.Request) {
+
+	// request
+	req, err := http.NewRequest("GET", config.servicesEndpoint, nil)
+	if err != nil {
+		log.Println(err)
+		tServices.Execute(w, appVar)
+		return
+	}
+
+	// client
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancelFunc()
+
+	c := http.Client{}
+	res, err := c.Do(req.WithContext(ctx)) // fail if we have to wait for more than 0.5 second
+	if err != nil {
+		log.Println(err)
+		tServices.Execute(w, appVar)
+		return
+	}
+
+	byteBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Println(err)
+		tServices.Execute(w, appVar)
+		return
+	}
+
+	// proccess response
+	billingResponse := &model.Billing{}
+	err = json.Unmarshal(byteBody, billingResponse)
+	if err != nil {
+		log.Println(err)
+		tServices.Execute(w, appVar)
+		return
+	}
+	appVar.Services = billingResponse.Services
+
+	tServices.Execute(w, appVar)
 }

@@ -30,6 +30,9 @@
                 <a class="nav-link" href="/exchangeToken">Exchange token</a>
               </li>
             <li class="nav-item">
+              <a class="nav-link" href="/services">Services</a>
+            </li>
+            <li class="nav-item">
               <a class="nav-link" href="/logout">Logout</a>
             </li>
           </ul>
@@ -70,6 +73,7 @@
                   </tr>
                 </tbody>
               </table>
+              {{block "services" .Services}}{{end}}
         </div>
       
       </main><!-- /.container -->
