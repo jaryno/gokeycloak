@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"learn.oatuh.client/model"
 )
 
@@ -47,12 +49,17 @@ type AppVar struct {
 	RefreshToken string
 	Scope        string
 	Services     []string
+	State        map[string]struct{}
+}
+
+func newAppVar() AppVar {
+	return AppVar{State: make(map[string]struct{})}
 }
 
 var t = template.Must(template.ParseFiles("template/index.html"))
 var tServices = template.Must(template.ParseFiles("template/index.html", "template/services.html"))
 
-var appVar = AppVar{}
+var appVar = newAppVar()
 
 func main() {
 	// fmt.Println("hello")
@@ -94,7 +101,9 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	qs := url.Values{}
-	qs.Add("state", "123")
+	state := uuid.New().String()
+	appVar.State[state] = struct{}{}
+	qs.Add("state", state)
 	qs.Add("client_id", config.appID)
 	qs.Add("response_type", "code")
 	qs.Add("redirect_uri", config.authCodeCallback)
@@ -106,6 +115,13 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 func authCodeRedirect(w http.ResponseWriter, r *http.Request) {
 	appVar.AuthCode = r.URL.Query().Get("code")
+	callbackState := r.URL.Query().Get("state")
+	if _, ok := appVar.State[callbackState]; !ok {
+		fmt.Fprintf(w, "Error")
+		return
+	}
+	delete(appVar.State, callbackState)
+
 	appVar.SessionState = r.URL.Query().Get("session_state")
 	r.URL.RawQuery = ""
 	fmt.Printf("Request queries: %+v\n", appVar)
@@ -126,7 +142,7 @@ func logout(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	logoutURL.RawQuery = q.Encode()
-	appVar = AppVar{}
+	appVar = newAppVar()
 	http.Redirect(w, r, logoutURL.String(), http.StatusFound)
 }
 
