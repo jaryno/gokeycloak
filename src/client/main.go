@@ -34,7 +34,7 @@ var config = struct {
 	appPassword:         "b96d3964-b8c2-4302-af07-3ec440945611",
 	authURL:             "http://localhost:8080/auth/realms/learningApp/protocol/openid-connect/auth",
 	logoutURL:           "http://localhost:8080/auth/realms/learningApp/protocol/openid-connect/logout",
-	afterLogoutRedirect: host,
+	afterLogoutRedirect: host + "/home",
 	authCodeCallback:    host + "/authCodeRedirect",
 	tokenEndpoint:       "http://localhost:8080/auth/realms/learningApp/protocol/openid-connect/token",
 	servicesEndpoint:    "http://localhost:8082/billing/v1/services",
@@ -56,10 +56,10 @@ var appVar = AppVar{}
 
 func main() {
 	// fmt.Println("hello")
-	http.HandleFunc("/", enabledLog(home))
+	http.HandleFunc("/home", enabledLog(home))
 	http.HandleFunc("/login", enabledLog(login))
 	http.HandleFunc("/logout", enabledLog(logout))
-	http.HandleFunc("/exchangeToken", enabledLog(exchangeToken))
+	// http.HandleFunc("/exchangeToken", enabledLog(exchangeToken))
 	http.HandleFunc("/services", enabledLog(services))
 	http.HandleFunc("/authCodeRedirect", enabledLog(authCodeRedirect))
 	http.ListenAndServe(":"+port, nil)
@@ -113,7 +113,8 @@ func authCodeRedirect(w http.ResponseWriter, r *http.Request) {
 	// http.Redirect(w, r, host, http.StatusFound)
 
 	// exchange token here
-	exchangeToken(w, r)
+	exchangeToken()
+	t.Execute(w, appVar)
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
@@ -129,7 +130,7 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, logoutURL.String(), http.StatusFound)
 }
 
-func exchangeToken(w http.ResponseWriter, r *http.Request) {
+func exchangeToken() {
 
 	// Request
 	form := url.Values{}
@@ -169,8 +170,6 @@ func exchangeToken(w http.ResponseWriter, r *http.Request) {
 	appVar.RefreshToken = accessTokenResponse.RefreshToken
 	appVar.Scope = accessTokenResponse.Scope
 	log.Println(appVar.AccessToken)
-
-	t.Execute(w, appVar)
 }
 
 func services(w http.ResponseWriter, r *http.Request) {
