@@ -110,7 +110,10 @@ func authCodeRedirect(w http.ResponseWriter, r *http.Request) {
 	r.URL.RawQuery = ""
 	fmt.Printf("Request queries: %+v\n", appVar)
 
-	http.Redirect(w, r, host, http.StatusFound)
+	// http.Redirect(w, r, host, http.StatusFound)
+
+	// exchange token here
+	exchangeToken(w, r)
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
