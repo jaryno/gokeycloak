@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,6 +11,8 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+
+	"learn.oauth.billing/model"
 )
 
 type Billing struct {
@@ -49,24 +52,38 @@ func services(w http.ResponseWriter, r *http.Request) {
 	token, err := getToken(r)
 	if err != nil {
 		log.Println(err)
-		s := &BillingError{Error: err.Error()}
-		encoder := json.NewEncoder(w)
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(s)
+		makeErrorMesasge(w, err.Error())
 		return
 	}
-
-	log.Println("Token : ", token)
+	// log.Println("Token : ", token)
 
 	// valdate token
 	if !validateToken(token) {
 		log.Println(err)
-		s := &BillingError{Error: "InvalidToken"}
-		encoder := json.NewEncoder(w)
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(s)
+		makeErrorMesasge(w, "InvalidToken")
+		return
+	}
+
+	claimBytes, err := getClaim(token)
+	if err != nil {
+		log.Println(err)
+		makeErrorMesasge(w, "Cannot parse token claim")
+		return
+	}
+	tokenClaim := &model.Tokenclaim{}
+	err = json.Unmarshal(claimBytes, tokenClaim)
+	if err != nil {
+		log.Println(err)
+		makeErrorMesasge(w, err.Error())
+		return
+	}
+
+	// scopes := strings.Split(tokenClaim.Scope, " ")
+	// for _, v := range scopes {
+	// 	log.Println("Scope : ", v)
+	// }
+	if !strings.Contains(tokenClaim.Scope, "getBillingService") {
+		makeErrorMesasge(w, "Invalid token scope. Required scope [getBillingService]")
 		return
 	}
 
@@ -173,4 +190,21 @@ func validateToken(token string) bool {
 	}
 
 	return introSpect.Active
+}
+
+func makeErrorMesasge(w http.ResponseWriter, errorMsg string) {
+	s := &BillingError{Error: errorMsg} // error message
+	encoder := json.NewEncoder(w)
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusBadRequest)
+	encoder.Encode(s)
+}
+
+func getClaim(token string) ([]byte, error) {
+	tokenParts := strings.Split(token, ".")
+	claim, err := base64.RawURLEncoding.DecodeString(tokenParts[1])
+	if err != nil {
+		return []byte{}, err
+	}
+	return claim, nil
 }

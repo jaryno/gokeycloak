@@ -180,6 +180,9 @@ func services(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.Header.Add("Authorization", "Bearer "+appVar.AccessToken)
+	log.Println(appVar.AccessToken)
+
 	// client
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancelFunc()
@@ -200,6 +203,12 @@ func services(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// proccess response
+	if res.StatusCode != 200 {
+		log.Println(string(byteBody))
+		tServices.Execute(w, appVar)
+		return
+	}
+
 	billingResponse := &model.Billing{}
 	err = json.Unmarshal(byteBody, billingResponse)
 	if err != nil {
