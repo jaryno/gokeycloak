@@ -105,6 +105,7 @@ func services(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(jData)
 }
 
@@ -196,6 +197,7 @@ func makeErrorMesasge(w http.ResponseWriter, errorMsg string) {
 	s := &BillingError{Error: errorMsg} // error message
 	encoder := json.NewEncoder(w)
 	w.Header().Add("Content-Type", "application/json")
+	w.Header().Add("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusBadRequest)
 	encoder.Encode(s)
 }
